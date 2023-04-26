@@ -44,7 +44,7 @@ let initialize_class_env cs =
     | [] -> []
     | Class (name,super,_impl,_fields,methods)::_  when name=c_name ->
       (List.map (fun (Method(n,_ret_type,pars,body))
-                  -> (n,(List.map fst pars,body,super,List.flatten fss)))
+                  -> ((name_mangle n pars),(List.map fst pars,body,super,List.flatten fss)))
          methods) @ get_methods cs super (List.tl fss) cs
     | Class (_,_,_,_,_)::cs'  | Interface(_,_)::cs'
       -> get_methods cs c_name fss cs'
@@ -55,7 +55,7 @@ let initialize_class_env cs =
       | Class (name,super,_impl,fields,methods)::cs'  ->
         let fss = (List.map fst fields) :: get_fields cs super cs
         in let ms = (List.map (fun (Method(n,_ret_type,pars,body))
-                                -> (n,(List.map fst pars,body,super,List.flatten fss)))
+                                -> ((name_mangle n pars),(List.map fst pars,body,super,List.flatten fss)))
                        methods) @ get_methods cs super (List.tl fss) cs
         in
         g_class_env := (name,(super,List.flatten fss,ms))::!g_class_env;
@@ -251,9 +251,10 @@ and
     eval_expr e >>= fun self ->
     obj_of_objectVal self >>= fun (c_name,_) ->
     eval_exprs es >>= fun args ->
-    (match lookup_method c_name m_name !g_class_env with
+    let mangled = (name_mangle m_name args) in
+    (match lookup_method c_name mangled !g_class_env with
     | None -> error "Method not found"
-    | Some m -> apply_method m_name self args m)
+    | Some m -> apply_method mangled self args m)
   | Self ->
     eval_expr (Var "_self")
   | Super(m_name,es) ->
@@ -261,17 +262,16 @@ and
     eval_expr (Var "_super") >>=
     string_of_stringVal >>= fun c_name ->
     eval_expr (Var "_self") >>= fun self ->
-    (match lookup_method c_name m_name !g_class_env with
+    let mangled = (name_mangle m_name args) in
+    (match lookup_method c_name mangled !g_class_env with
     | None -> error "Method not found"
-    | Some m -> apply_method m_name self args m)
+    | Some m -> apply_method mangled self args m)
   | IsInstanceOf(e,id) ->  (* Pending: id may also be an interface *)
     eval_expr e >>=
-    apply_env >>= fun o ->
-    (match o with
-    | ObjectVal(c, _) ->
-      return (BoolVal (c=id || (is_subclass c id)))
-    | _ -> error "IsInstanceOf: expected an object")
-    
+    obj_of_objectVal >>= fun (name, _) ->
+    is_subclass name id !g_class_env >>= fun b ->
+    return b
+  
   (* List operations* *)
   | List(es) ->
     eval_exprs es >>= fun args ->
