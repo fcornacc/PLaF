@@ -242,10 +242,11 @@ and
      | None -> error ("NewObject: lookup_class: class "^c_name^" not found")
      | Some (_super,fields,methods) -> 
        new_env fields >>= fun env ->
-       let self = ObjectVal(c_name,env)
-    in (match List.assoc_opt "initialize_0" methods with
+       let self = ObjectVal(c_name,env) in
+       let mangled  = (name_mangle "initialize" args) in 
+    (match List.assoc_opt mangled methods with
     | None -> return self
-    | Some m -> apply_method "initialize_0" self args m
+    | Some m -> apply_method mangled self args m
   >>= fun _ ->return self))
   | Send(e,m_name,es) ->
     eval_expr e >>= fun self ->
