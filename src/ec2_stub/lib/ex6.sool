@@ -1,0 +1,14 @@
+class c extends object {
+    field c
+    method initialize() { set c = 0 }
+    method add(n) { set c = c + n}
+    method add(n1, n2) { set c = c + n1 + n2 }
+    method read() { c }
+}
+
+let o = new c() 
+in begin
+    send o add(10);
+    send o add(5,5);
+    send o read()
+end

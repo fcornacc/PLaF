@@ -15,15 +15,15 @@ class resetc extends counter {
 class bkpc extends resetc {
   field b
   method initialize() {
-  begin
-    super initialize();
-    set b=12
+    begin
+      super initialize();
+      set b=12
     end }
   method add(i) {
-      begin
-	send self backup();
-	super add(i)
-      end }
+    begin
+      send self backup();
+      super add(i)
+    end }
   method backup() { set b=c }
   method restore() { set c=b}
  }
